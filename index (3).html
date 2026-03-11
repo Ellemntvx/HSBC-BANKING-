@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HSBC Bank — Online Banking</title>
+<style>
+/* ─── RESET & BASE ─── */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body { font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; background:#F5F5F5; color:#222; min-height:100vh; font-size:14px; line-height:1.5; }
+
+/* ─── VARIABLES ─── */
+:root {
+  --red:    #DB0011;
+  --dkred:  #9B000C;
+  --white:  #FFFFFF;
+  --cream:  #F9F9F9;
+  --g100:   #F2F2F2;
+  --g300:   #D0C8C0;
+  --g500:   #888888;
+  --g700:   #444444;
+  --err:    #C0392B;
+  --grn:    #1A6B3C;
+  --border: #E0DAD2;
+}
+
+/* ─── PAGES ─── */
+#login-page    { display:flex; flex-direction:column; min-height:100vh; background:var(--red); }
+#dashboard-page{ display:none; flex-direction:column; min-height:100vh; background:#F5F5F5; }
+
+/* ─── LOGIN ─── */
+.login-header { padding:24px 48px; border-bottom:1px solid rgba(255,255,255,0.15); }
+.logo-wrap { display:flex; align-items:center; gap:12px; text-decoration:none; }
+.logo-hex { width:36px; height:36px; background:var(--white); border-radius:3px; display:grid; grid-template-columns:1fr 1fr; padding:5px; gap:3px; flex-shrink:0; }
+.logo-hex div { background:var(--red); border-radius:1px; }
+.logo-text { font-family:'Georgia',serif; font-size:21px; font-weight:700; color:var(--white); letter-spacing:3px; text-transform:uppercase; }
+.login-body { flex:1; display:flex; align-items:center; justify-content:center; padding:48px 20px; }
+.login-card { background:var(--white); border-radius:2px; width:100%; max-width:420px; padding:44px 44px 40px; box-shadow:0 20px 60px rgba(0,0,0,0.35); }
+.login-card h2 { font-family:'Georgia',serif; font-size:26px; color:var(--red); margin-bottom:5px; letter-spacing:.3px; }
+.login-card .sub { font-size:13px; color:var(--g500); margin-bottom:28px; }
+.fg { margin-bottom:18px; }
+.fg label { display:block; font-size:11px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:#333; margin-bottom:7px; }
+.fg input { width:100%; padding:12px 15px; border:1.5px solid var(--border); border-radius:2px; font-size:15px; color:#222; background:var(--white); transition:border-color .2s; outline:none; }
+.fg input:focus { border-color:var(--red); }
+.fg input[readonly] { background:#F5F5F5; cursor:default; color:var(--g500); }
+.fg select { width:100%; padding:12px 15px; border:1.5px solid var(--border); border-radius:2px; font-size:14px; color:#222; background:var(--white); outline:none; cursor:pointer; transition:border-color .2s; }
+.fg select:focus { border-color:var(--red); }
+.btn-red { width:100%; padding:14px; background:var(--red); color:var(--white); border:none; border-radius:2px; font-size:12px; font-weight:700; letter-spacing:1.8px; text-transform:uppercase; cursor:pointer; transition:background .2s; margin-top:6px; }
+.btn-red:hover { background:var(--dkred); }
+.alert-err { display:none; background:#FDF2F0; border:1px solid #E8C4BE; color:var(--err); font-size:13px; padding:11px 15px; border-radius:2px; margin-bottom:18px; }
+.login-footer { padding:18px 48px; border-top:1px solid rgba(255,255,255,0.1); display:flex; justify-content:center; gap:28px; flex-wrap:wrap; }
+.login-footer a { color:rgba(255,255,255,0.45); font-size:10px; letter-spacing:.8px; text-transform:uppercase; text-decoration:none; transition:color .2s; }
+.login-footer a:hover { color:rgba(255,255,255,0.8); }
+
+/* ─── TOP NAV ─── */
+.top-nav { background:var(--red); padding:0 48px; display:flex; align-items:center; justify-content:space-between; height:62px; position:sticky; top:0; z-index:200; box-shadow:0 2px 8px rgba(0,0,0,0.2); }
+.nav-left { display:flex; align-items:center; gap:32px; }
+.nav-links { display:flex; list-style:none; }
+.nav-links a { display:flex; align-items:center; height:62px; padding:0 16px; color:rgba(255,255,255,0.78); font-size:11.5px; letter-spacing:1px; text-transform:uppercase; text-decoration:none; font-weight:600; border-bottom:3px solid transparent; transition:all .18s; }
+.nav-links a:hover { color:var(--white); border-bottom-color:rgba(255,255,255,0.5); }
+.nav-links a.active { color:var(--white); border-bottom-color:var(--white); }
+.nav-right { display:flex; align-items:center; gap:14px; }
+.nav-user { color:rgba(255,255,255,0.9); font-size:12.5px; font-weight:600; letter-spacing:.3px; }
+.btn-out { background:transparent; border:1px solid rgba(255,255,255,0.4); color:rgba(255,255,255,0.85); padding:6px 16px; font-size:10.5px; letter-spacing:1px; text-transform:uppercase; cursor:pointer; border-radius:2px; transition:all .2s; font-weight:600; }
+.btn-out:hover { border-color:var(--white); color:var(--white); }
+
+/* ─── MAIN CONTENT ─── */
+.main { max-width:1080px; margin:0 auto; padding:32px 24px 48px; width:100%; flex:1; }
+
+/* ─── VIEWS (all hidden by default; JS shows the active one) ─── */
+.view { display:none; }
+.view.active { display:block; animation:fadeUp .3s ease; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
+
+/* ─── ACCOUNT HERO ─── */
+.hero { background:var(--red); border-radius:2px; padding:34px 38px; margin-bottom:22px; position:relative; overflow:hidden; }
+.hero::after { content:''; position:absolute; top:-70px; right:-70px; width:260px; height:260px; background:radial-gradient(circle,rgba(255,255,255,0.07) 0%,transparent 70%); border-radius:50%; pointer-events:none; }
+.hero-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px; }
+.hero-badge { font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.88); border:1px solid rgba(255,255,255,0.28); padding:4px 12px; border-radius:2px; background:rgba(255,255,255,0.1); }
+.hero-mark { font-family:'Georgia',serif; font-size:12px; color:rgba(255,255,255,0.18); letter-spacing:3px; text-transform:uppercase; }
+.hero-name { font-family:'Georgia',serif; font-size:27px; color:var(--white); letter-spacing:1px; margin-bottom:3px; }
+.hero-name span { opacity:.82; }
+.hero-since { font-size:10px; color:rgba(255,255,255,0.38); letter-spacing:1.5px; text-transform:uppercase; }
+.hero-nums { display:flex; gap:36px; margin-top:16px; flex-wrap:wrap; }
+.num-item label { font-size:9.5px; letter-spacing:1.5px; text-transform:uppercase; color:rgba(255,255,255,0.42); display:block; margin-bottom:3px; }
+.num-item span { font-size:13px; color:var(--white); font-weight:500; letter-spacing:2px; font-family:'Courier New',monospace; }
+.hero-bal-row { margin-top:22px; padding-top:20px; border-top:1px solid rgba(255,255,255,0.14); display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:14px; }
+.bal-label { font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:rgba(255,255,255,0.42); margin-bottom:5px; }
+.bal-amt { font-family:'Georgia',serif; font-size:44px; color:var(--white); letter-spacing:1px; line-height:1; }
+.bal-amt .cents { font-size:24px; opacity:.72; }
+.btn-wdraw { background:var(--white); border:none; color:var(--red); padding:11px 26px; font-size:10.5px; letter-spacing:1.2px; text-transform:uppercase; cursor:pointer; border-radius:2px; font-weight:800; transition:background .2s; }
+.btn-wdraw:hover { background:#F0F0F0; }
+
+/* ─── INFO PANELS ─── */
+.panels { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:26px; }
+.panel { background:var(--white); border:1px solid var(--border); border-radius:2px; padding:18px 22px; }
+.pnl-lbl { font-size:9.5px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--g500); margin-bottom:7px; }
+.pnl-val { font-size:16px; font-weight:700; color:var(--red); font-family:'Georgia',serif; }
+.pnl-sub { font-size:11px; color:var(--g500); margin-top:3px; }
+.pnl-sub a { color:var(--red); text-decoration:none; font-weight:600; }
+.pnl-sub a:hover { text-decoration:underline; }
+.dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#27AE60; margin-right:5px; vertical-align:middle; }
+
+/* ─── SECTION HEADER ─── */
+.sec-hdr { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px; }
+.sec-title { font-family:'Georgia',serif; font-size:19px; color:#222; }
+.sec-sub { font-size:11px; color:var(--g500); margin-top:2px; }
+
+/* ─── TRANSACTIONS ─── */
+.txn-table { background:var(--white); border:1px solid var(--border); border-radius:2px; overflow:hidden; }
+.txn-hdr { display:grid; grid-template-columns:128px 1fr 140px 148px; padding:10px 22px; background:var(--g100); border-bottom:1px solid var(--border); gap:10px; }
+.txn-col { font-size:9.5px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--g500); }
+.txn-row { display:grid; grid-template-columns:128px 1fr 140px 148px; padding:14px 22px; border-bottom:1px solid #F0EDE8; gap:10px; align-items:center; transition:background .12s; }
+.txn-row:last-child { border-bottom:none; }
+.txn-row:hover { background:#FAFAF8; }
+.txn-date { font-size:12px; color:var(--g500); font-family:'Courier New',monospace; }
+.txn-desc { font-size:13.5px; color:#222; font-weight:500; }
+.txn-ref { font-size:10.5px; color:var(--g500); margin-top:2px; }
+.tag { font-size:10px; padding:2px 9px; border-radius:20px; display:inline-block; letter-spacing:.4px; font-weight:600; }
+.tag-dep { background:#E8F5EE; color:var(--grn); }
+.tag-pur { background:#EEF2FA; color:#003080; }
+.tag-pay { background:#FEF3E2; color:#B7770D; }
+.tag-trf { background:#F3EEF8; color:#6B4FA0; }
+.tag-crd { background:#E8F5EE; color:var(--grn); }
+.txn-amt { font-size:14px; font-weight:700; font-family:'Courier New',monospace; text-align:right; }
+.txn-amt.pos { color:var(--grn); }
+.txn-amt.neg { color:#222; }
+
+/* ─── STATEMENTS ─── */
+.stmt-bar { background:var(--white); border:1px solid var(--border); border-radius:2px; padding:20px 26px; margin-bottom:22px; display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+.stmt-bar label { font-size:10.5px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#444; white-space:nowrap; }
+.stmt-bar select { padding:9px 14px; border:1.5px solid var(--border); border-radius:2px; font-size:13.5px; color:#222; outline:none; background:var(--white); cursor:pointer; transition:border-color .2s; }
+.stmt-bar select:focus { border-color:var(--red); }
+.btn-gen { background:var(--red); color:var(--white); border:none; padding:10px 24px; font-size:10.5px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; cursor:pointer; border-radius:2px; transition:background .2s; }
+.btn-gen:hover { background:var(--dkred); }
+.stmt-print-bar { display:flex; justify-content:flex-end; margin-bottom:14px; }
+.btn-print { background:var(--white); border:1px solid var(--border); color:var(--g700); padding:8px 18px; font-size:10.5px; letter-spacing:1px; text-transform:uppercase; cursor:pointer; border-radius:2px; font-weight:600; transition:all .2s; }
+.btn-print:hover { border-color:var(--red); color:var(--red); }
+.stmt-card { background:var(--white); border:1px solid var(--border); border-radius:2px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.05); }
+.stmt-head { background:var(--red); padding:32px 40px 28px; }
+.stmt-bank-row { display:flex; align-items:center; gap:12px; margin-bottom:3px; }
+.stmt-logo-sm { width:28px; height:28px; background:var(--white); border-radius:2px; display:grid; grid-template-columns:1fr 1fr; padding:4px; gap:2px; flex-shrink:0; }
+.stmt-logo-sm div { background:var(--red); border-radius:1px; }
+.stmt-bank-nm { font-family:'Georgia',serif; font-size:24px; color:var(--white); letter-spacing:2px; font-weight:700; text-transform:uppercase; }
+.stmt-subtitle { font-size:11px; color:rgba(255,255,255,0.48); letter-spacing:2.5px; text-transform:uppercase; margin-bottom:24px; padding-left:40px; }
+.stmt-meta { display:flex; gap:36px; flex-wrap:wrap; }
+.stmt-mi label { font-size:9.5px; letter-spacing:1.5px; text-transform:uppercase; color:rgba(255,255,255,0.42); display:block; margin-bottom:3px; }
+.stmt-mi span { font-size:12.5px; color:var(--white); font-weight:600; font-family:'Courier New',monospace; letter-spacing:.8px; }
+.stmt-divider { height:4px; background:rgba(0,0,0,0.14); }
+.stmt-body { padding:32px 40px; }
+.stmt-summ { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:32px; padding-bottom:26px; border-bottom:2px solid #EEE; }
+.sbox { background:#FAFAFA; border:1px solid var(--border); border-radius:2px; padding:16px 18px; }
+.sbox .slbl { font-size:9.5px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--g500); margin-bottom:7px; }
+.sbox .sval { font-family:'Georgia',serif; font-size:18px; font-weight:700; color:var(--red); line-height:1.2; }
+.sbox .ssub { font-size:10px; color:var(--g500); margin-top:3px; }
+.stmt-txn-sec h4 { font-family:'Georgia',serif; font-size:16px; color:#222; margin-bottom:14px; padding-bottom:9px; border-bottom:1px solid var(--border); }
+.stmt-tbl { width:100%; border-collapse:collapse; }
+.stmt-tbl thead th { font-size:9.5px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--g500); padding:8px 12px; text-align:left; background:#F8F8F8; border-bottom:1px solid var(--border); }
+.stmt-tbl thead th:last-child { text-align:right; }
+.stmt-tbl tbody td { padding:11px 12px; font-size:12.5px; color:#333; border-bottom:1px solid #F5F2EE; vertical-align:middle; }
+.stmt-tbl tbody tr:last-child td { border-bottom:none; }
+.stmt-tbl tbody td:last-child { text-align:right; font-family:'Courier New',monospace; font-weight:700; }
+.stmt-tbl tbody tr:hover td { background:#FAFAF8; }
+.stmt-empty { padding:24px; text-align:center; color:var(--g500); font-style:italic; font-size:13px; }
+.stmt-totals { margin-top:16px; padding:14px 18px; background:#F8F8F8; border:1px solid var(--border); border-radius:2px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
+.tot { font-size:11.5px; color:#444; }
+.tot strong { font-family:'Courier New',monospace; color:#222; }
+.stmt-note { margin-top:24px; padding-top:18px; border-top:1px solid var(--border); font-size:10.5px; color:var(--g500); line-height:1.75; }
+.stmt-note strong { color:#555; }
+
+/* ─── SETTINGS & HELP ─── */
+.sec-page-hdr { margin-bottom:22px; }
+.settings-card { background:var(--white); border:1px solid var(--border); border-radius:2px; padding:28px 32px; margin-bottom:20px; }
+.settings-card h3 { font-family:'Georgia',serif; font-size:18px; color:#222; margin-bottom:5px; }
+.settings-card > p { font-size:13px; color:var(--g500); margin-bottom:22px; line-height:1.6; }
+.alert-ok { display:none; background:#E8F5EE; border:1px solid #A8D8B8; color:var(--grn); font-size:12.5px; padding:11px 15px; border-radius:2px; margin-bottom:14px; font-weight:600; }
+.btn-save { background:var(--red); color:var(--white); border:none; padding:11px 26px; font-size:10.5px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; cursor:pointer; border-radius:2px; transition:background .2s; margin-top:4px; }
+.btn-save:hover { background:var(--dkred); }
+.type-sel { display:flex; gap:10px; margin-bottom:16px; }
+.type-opt { flex:1; padding:13px; border:2px solid var(--border); border-radius:2px; cursor:pointer; text-align:center; transition:all .2s; }
+.type-opt.selected { border-color:var(--red); background:#FFF0F0; }
+.type-opt-lbl { font-size:11px; font-weight:700; color:#222; letter-spacing:.8px; text-transform:uppercase; }
+.type-opt-sub { font-size:10px; color:var(--g500); margin-top:2px; }
+
+/* ─── HELP ─── */
+.help-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+.help-card { background:var(--white); border:1px solid var(--border); border-radius:2px; padding:26px 30px; }
+.help-card h3 { font-family:'Georgia',serif; font-size:17px; color:#222; margin-bottom:8px; }
+.help-card > p { font-size:12.5px; color:var(--g500); margin-bottom:16px; line-height:1.6; }
+.contact-item { margin-bottom:14px; }
+.contact-item:last-child { margin-bottom:0; }
+.contact-label { font-size:9.5px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:var(--g500); margin-bottom:3px; }
+.contact-num { font-size:18px; font-weight:700; color:var(--red); font-family:'Georgia',serif; }
+.contact-hours { font-size:10.5px; color:var(--g500); margin-top:1px; }
+.help-info-box { background:var(--g100); border:1px solid var(--border); border-radius:2px; padding:16px 18px; }
+.fraud-box { background:#FDF2F0; border:1px solid #E8C4BE; border-radius:2px; padding:16px 18px; }
+.fraud-box .flbl { font-size:10px; font-weight:700; color:var(--err); letter-spacing:.5px; margin-bottom:5px; }
+.fraud-box .fnum { font-size:20px; font-weight:700; color:var(--err); font-family:'Georgia',serif; }
+.fraud-box .fnote { font-size:10.5px; color:#7A3028; margin-top:4px; }
+.faq-item { padding:11px 0; border-bottom:1px solid var(--border); }
+.faq-item:last-child { border-bottom:none; padding-bottom:0; }
+.faq-q { font-size:12.5px; font-weight:600; color:#222; margin-bottom:3px; }
+.faq-a { font-size:11.5px; color:var(--g500); line-height:1.6; }
+.notice-card { background:#F8F8F8; border:1px solid var(--border); border-radius:2px; padding:24px 30px; margin-bottom:20px; }
+.notice-card h3 { font-family:'Georgia',serif; font-size:17px; color:#222; margin-bottom:10px; }
+.notice-card p { font-size:11px; color:var(--g500); line-height:1.8; }
+
+/* ─── MODAL ─── */
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.52); z-index:999; align-items:center; justify-content:center; }
+.modal-overlay.open { display:flex; }
+.modal-box { background:var(--white); border-radius:2px; padding:34px 38px; max-width:480px; width:92%; box-shadow:0 24px 80px rgba(0,0,0,0.28); animation:mPop .2s ease; }
+@keyframes mPop { from{transform:translateY(-14px);opacity:0} to{transform:translateY(0);opacity:1} }
+.modal-box h3 { font-family:'Georgia',serif; font-size:20px; color:#222; margin-bottom:7px; }
+.modal-box > p { font-size:13px; color:var(--g500); margin-bottom:18px; line-height:1.6; }
+.mwarn { background:#FDF2F0; border-left:3px solid var(--err); padding:15px 17px; margin-bottom:18px; border-radius:0 2px 2px 0; }
+.mwarn h4 { font-size:12.5px; font-weight:700; color:var(--err); margin-bottom:7px; }
+.mwarn p { font-size:12.5px; color:#7A3028; line-height:1.55; margin-bottom:0; }
+.mwarn .fee-line { font-size:11.5px; color:#7A3028; margin-top:9px; font-weight:700; padding-top:9px; border-top:1px solid #E8C4BE; }
+.m-actions { display:flex; gap:10px; justify-content:flex-end; }
+.btn-cancel { background:transparent; border:1px solid var(--border); color:var(--g700); padding:9px 20px; font-size:10.5px; letter-spacing:1px; text-transform:uppercase; cursor:pointer; border-radius:2px; font-weight:600; transition:all .2s; }
+.btn-cancel:hover { border-color:var(--g700); }
+.btn-confirm { background:var(--red); color:var(--white); border:none; padding:9px 22px; font-size:10.5px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; cursor:pointer; border-radius:2px; transition:background .2s; }
+.btn-confirm:hover { background:var(--dkred); }
+
+/* ─── FOOTER ─── */
+.site-foot { background:var(--white); border-top:1px solid var(--border); padding:16px 48px; display:flex; justify-content:space-between; align-items:center; font-size:10.5px; color:var(--g500); flex-wrap:wrap; gap:8px; }
+.badges { display:flex; gap:18px; }
+.badge { font-size:9.5px; letter-spacing:.8px; text-transform:uppercase; font-weight:600; }
+
+/* ─── PRINT ─── */
+@media print {
+  .top-nav,.site-foot,.stmt-bar,.stmt-print-bar,
+  #account-view,#settings-view,#help-view,.sec-hdr { display:none !important; }
+  #statements-view, #statements-view.active { display:block !important; }
+  #stmt-output { display:block !important; }
+  .main { padding:0 !important; max-width:100% !important; }
+  .stmt-card { box-shadow:none; border:none; }
+  body { background:white; }
+}
+
+/* ─── RESPONSIVE ─── */
+@media(max-width:800px){
+  .top-nav { padding:0 14px; height:56px; }
+  .nav-links a { padding:0 10px; font-size:10.5px; }
+  .main { padding:18px 14px 32px; }
+  .panels { grid-template-columns:1fr 1fr; }
+  .txn-hdr,.txn-row { grid-template-columns:100px 1fr 130px; }
+  .txn-hdr > div:nth-child(3),.txn-row > div:nth-child(3) { display:none; }
+  .hero-nums { gap:20px; }
+  .hero-bal-row { flex-direction:column; align-items:flex-start; }
+  .stmt-summ { grid-template-columns:1fr 1fr; }
+  .stmt-body,.stmt-head { padding:20px; }
+  .stmt-subtitle { padding-left:0; }
+  .help-grid { grid-template-columns:1fr; }
+  .site-foot { padding:14px 16px; }
+  .login-footer { padding:14px 16px; gap:16px; }
+  .login-header { padding:18px 20px; }
+}
+@media(max-width:520px){
+  .panels { grid-template-columns:1fr; }
+  .hero { padding:22px 18px; }
+  .bal-amt { font-size:34px; }
+  .nav-user { display:none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════ LOGIN ══════════ -->
+<div id="login-page">
+  <div class="login-header">
+    <div class="logo-wrap">
+      <div class="logo-hex"><div></div><div></div><div></div><div></div></div>
+      <div class="logo-text">HSBC Bank</div>
+    </div>
+  </div>
+
+  <div class="login-body">
+    <div class="login-card">
+      <h2>Sign In</h2>
+      <p class="sub">Secure access to your HSBC Online Banking</p>
+      <div class="alert-err" id="login-err">The User ID or password you entered is incorrect. Please try again.</div>
+      <div class="fg">
+        <label for="inp-uid">User ID</label>
+        <input type="text" id="inp-uid" placeholder="Enter your User ID" autocomplete="username">
+      </div>
+      <div class="fg">
+        <label for="inp-pw">Password</label>
+        <input type="password" id="inp-pw" placeholder="Enter your password" autocomplete="current-password">
+      </div>
+      <button class="btn-red" onclick="doLogin()">Sign In</button>
+    </div>
+  </div>
+
+  <div class="login-footer">
+    <a href="#" onclick="return false">Privacy Policy</a>
+    <a href="#" onclick="return false">Security Centre</a>
+    <a href="#" onclick="return false">Terms of Service</a>
+    <a href="#" onclick="return false">Contact Us</a>
+    <a href="#" onclick="return false">Cookie Settings</a>
+  </div>
+</div>
+
+<!-- ══════════ DASHBOARD ══════════ -->
+<div id="dashboard-page">
+
+  <!-- NAV -->
+  <nav class="top-nav">
+    <div class="nav-left">
+      <div class="logo-wrap">
+        <div class="logo-hex"><div></div><div></div><div></div><div></div></div>
+        <div class="logo-text">HSBC Bank</div>
+      </div>
+      <ul class="nav-links">
+        <li><a href="#" id="lnk-account"    onclick="return nav('account',this)">Accounts</a></li>
+        <li><a href="#" id="lnk-statements" onclick="return nav('statements',this)">Statements</a></li>
+        <li><a href="#" id="lnk-settings"   onclick="return nav('settings',this)">Settings</a></li>
+        <li><a href="#" id="lnk-help"       onclick="return nav('help',this)">Help</a></li>
+      </ul>
+    </div>
+    <div class="nav-right">
+      <span class="nav-user" id="nav-name">Welcome, Jasmine</span>
+      <button class="btn-out" onclick="doSignout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <!-- CONTENT -->
+  <div class="main">
+
+    <!-- ── ACCOUNTS ── -->
+    <div id="account-view" class="view">
+
+      <div class="hero">
+        <div class="hero-top">
+          <span class="hero-badge" id="hero-badge">Checking Account</span>
+          <span class="hero-mark">HSBC Bank plc&#8482;</span>
+        </div>
+        <div class="hero-name">Jasmine <span>Hubi</span></div>
+        <div class="hero-since">Member Since 2019 &nbsp;&middot;&nbsp; HSBC Premier Member</div>
+        <div class="hero-nums">
+          <div class="num-item"><label>Account Number</label><span>&#9679;&#9679;&#9679;&#9679; &nbsp;&#9679;&#9679;&#9679;&#9679; &nbsp;7842</span></div>
+          <div class="num-item"><label>Routing Number</label><span>021000089</span></div>
+          <div class="num-item"><label>IBAN</label><span>GB29 HSBC 6016 1331 9268 19</span></div>
+          <div class="num-item"><label>Account Type</label><span id="disp-type">Checking</span></div>
+        </div>
+        <div class="hero-bal-row">
+          <div>
+            <div class="bal-label">Available Balance</div>
+            <div class="bal-amt" id="bal-display">&#8364;0<span class="cents">,00</span></div>
+          </div>
+          <button class="btn-wdraw" onclick="openModal('modal-wdraw')">Withdraw Funds</button>
+        </div>
+      </div>
+
+      <div class="panels">
+        <div class="panel">
+          <div class="pnl-lbl">Account Status</div>
+          <div class="pnl-val"><span class="dot"></span>Active</div>
+          <div class="pnl-sub">All services available</div>
+        </div>
+        <div class="panel">
+          <div class="pnl-lbl">Last Statement</div>
+          <div class="pnl-val">28 Feb 2025</div>
+          <div class="pnl-sub"><a href="#" onclick="return nav('statements',document.getElementById('lnk-statements'))">View Statements &#8594;</a></div>
+        </div>
+        <div class="panel">
+          <div class="pnl-lbl">Interest Rate (AER)</div>
+          <div class="pnl-val">0.10%</div>
+          <div class="pnl-sub">Variable rate applies</div>
+        </div>
+      </div>
+
+      <div class="sec-hdr">
+        <div>
+          <div class="sec-title">Recent Transactions</div>
+          <div class="sec-sub">Last 30 days &nbsp;&middot;&nbsp; All amounts in EUR (&#8364;)</div>
+        </div>
+      </div>
+
+      <div class="txn-table">
+        <div class="txn-hdr">
+          <div class="txn-col">Date</div>
+          <div class="txn-col">Description</div>
+          <div class="txn-col">Category</div>
+          <div class="txn-col" style="text-align:right">Amount (&#8364;)</div>
+        </div>
+        <div id="txn-body"></div>
+      </div>
+
+    </div><!-- /account-view -->
+
+    <!-- ── STATEMENTS ── -->
+    <div id="statements-view" class="view">
+      <div class="sec-page-hdr">
+        <div class="sec-title">Account Statements</div>
+        <div class="sec-sub">Official HSBC Bank account statement &nbsp;&middot;&nbsp; Account ending 7842</div>
+      </div>
+
+      <div class="stmt-bar">
+        <label>Statement Period</label>
+        <select id="stmt-period">
+          <option value="3-2025">March 2025</option>
+          <option value="2-2025" selected>February 2025</option>
+          <option value="1-2025">January 2025</option>
+          <option value="12-2024">December 2024</option>
+          <option value="11-2024">November 2024</option>
+          <option value="10-2024">October 2024</option>
+          <option value="9-2024">September 2024</option>
+        </select>
+        <button class="btn-gen" onclick="genStatement()">Generate Statement</button>
+      </div>
+
+      <div id="stmt-output" style="display:none;">
+        <div class="stmt-print-bar">
+          <button class="btn-print" onclick="window.print()">&#128424; Print / Save as PDF</button>
+        </div>
+        <div class="stmt-card">
+          <div class="stmt-head">
+            <div class="stmt-bank-row">
+              <div class="stmt-logo-sm"><div></div><div></div><div></div><div></div></div>
+              <div class="stmt-bank-nm">HSBC Bank</div>
+            </div>
+            <div class="stmt-subtitle">Account Statement</div>
+            <div class="stmt-meta">
+              <div class="stmt-mi"><label>Account Holder</label><span>Jasmine Hubi</span></div>
+              <div class="stmt-mi"><label>Account Number</label><span>&#9679;&#9679;&#9679;&#9679; &#9679;&#9679;&#9679;&#9679; 7842</span></div>
+              <div class="stmt-mi"><label>Statement Period</label><span id="s-period">—</span></div>
+              <div class="stmt-mi"><label>Currency</label><span>EUR (&#8364;)</span></div>
+              <div class="stmt-mi"><label>Generated</label><span id="s-date">—</span></div>
+            </div>
+          </div>
+          <div class="stmt-divider"></div>
+          <div class="stmt-body">
+            <div class="stmt-summ">
+              <div class="sbox"><div class="slbl">Opening Balance</div><div class="sval" id="s-open">—</div><div class="ssub">Start of period</div></div>
+              <div class="sbox"><div class="slbl">Closing Balance</div><div class="sval" id="s-close">—</div><div class="ssub">End of period</div></div>
+              <div class="sbox"><div class="slbl">Total Credits</div><div class="sval" id="s-in" style="color:var(--grn)">—</div><div class="ssub">Money in</div></div>
+              <div class="sbox"><div class="slbl">Total Debits</div><div class="sval" id="s-out">—</div><div class="ssub">Money out</div></div>
+            </div>
+            <div class="stmt-txn-sec">
+              <h4>Transaction Detail</h4>
+              <table class="stmt-tbl">
+                <thead>
+                  <tr>
+                    <th>Date</th><th>Description</th><th>Reference</th><th>Category</th><th>Amount (&#8364;)</th>
+                  </tr>
+                </thead>
+                <tbody id="s-rows"></tbody>
+              </table>
+              <div class="stmt-totals">
+                <div class="tot">Transactions this period: <strong id="s-count">0</strong></div>
+                <div class="tot">Net change: <strong id="s-net">—</strong></div>
+              </div>
+            </div>
+            <div class="stmt-note">
+              <strong>Important Notice:</strong> This statement constitutes an official record of your account activity for the stated period. Any discrepancies must be reported to HSBC Bank within 30 days of the statement date. Unauthorised transactions should be reported immediately via the HSBC fraud hotline.<br><br>
+              HSBC Bank plc is authorised by the Prudential Regulation Authority and regulated by the Financial Conduct Authority and the Prudential Regulation Authority. Registered in England and Wales No. 14259. Registered Office: 8 Canada Square, London, E14 5HQ. Member FSCS. &copy; 2025 HSBC Bank plc. All rights reserved.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div><!-- /statements-view -->
+
+    <!-- ── SETTINGS ── -->
+    <div id="settings-view" class="view">
+      <div class="sec-page-hdr">
+        <div class="sec-title">Profile &amp; Security</div>
+        <div class="sec-sub">Manage your login credentials and account preferences</div>
+      </div>
+
+      <div class="settings-card">
+        <h3>Change User ID</h3>
+        <p>Update the User ID you use to sign in. Your current password is required to confirm this change.</p>
+        <div class="alert-ok" id="ok-uid">&#10003; Your User ID has been updated successfully.</div>
+        <div class="fg"><label>Current User ID</label><input type="text" id="cur-uid" readonly></div>
+        <div class="fg"><label>New User ID</label><input type="text" id="new-uid" placeholder="Enter new User ID"></div>
+        <div class="fg"><label>Confirm with Password</label><input type="password" id="uid-pw" placeholder="Enter your current password"></div>
+        <button class="btn-save" onclick="changeUID()">Update User ID</button>
+      </div>
+
+      <div class="settings-card">
+        <h3>Change Password</h3>
+        <p>Choose a strong password you have not used before. Must be at least 8 characters.</p>
+        <div class="alert-ok" id="ok-pw">&#10003; Your password has been updated successfully.</div>
+        <div class="fg"><label>Current Password</label><input type="password" id="old-pw" placeholder="Enter current password"></div>
+        <div class="fg"><label>New Password</label><input type="password" id="new-pw" placeholder="Enter new password"></div>
+        <div class="fg"><label>Confirm New Password</label><input type="password" id="conf-pw" placeholder="Confirm new password"></div>
+        <button class="btn-save" onclick="changePW()">Update Password</button>
+      </div>
+
+      <div class="settings-card">
+        <h3>Account Type</h3>
+        <p>Select your account classification. Your password is required to apply changes.</p>
+        <div class="alert-ok" id="ok-type">&#10003; Account type updated successfully.</div>
+        <div class="type-sel">
+          <div class="type-opt selected" id="opt-checking" onclick="pickType('checking')">
+            <div class="type-opt-lbl">Checking</div><div class="type-opt-sub">Day-to-day banking</div>
+          </div>
+          <div class="type-opt" id="opt-savings" onclick="pickType('savings')">
+            <div class="type-opt-lbl">Savings</div><div class="type-opt-sub">Earn interest</div>
+          </div>
+        </div>
+        <div class="fg"><label>Confirm with Password</label><input type="password" id="type-pw" placeholder="Enter your password"></div>
+        <button class="btn-save" onclick="saveType()">Save Account Type</button>
+      </div>
+    </div><!-- /settings-view -->
+
+    <!-- ── HELP ── -->
+    <div id="help-view" class="view">
+      <div class="sec-page-hdr">
+        <div class="sec-title">Help &amp; Support</div>
+        <div class="sec-sub">HSBC Bank customer support resources and information</div>
+      </div>
+
+      <div class="help-grid">
+        <div class="help-card">
+          <h3>&#128222; Contact Us</h3>
+          <p>Speak with an HSBC representative for account enquiries, transfers, or general assistance.</p>
+          <div class="contact-item">
+            <div class="contact-label">Premier Banking Line</div>
+            <div class="contact-num">1-800-975-4722</div>
+            <div class="contact-hours">Mon – Fri &nbsp;8:00 AM – 9:00 PM EST</div>
+          </div>
+          <div class="contact-item">
+            <div class="contact-label">International Helpline</div>
+            <div class="contact-num">+44 (0) 1226 261 010</div>
+            <div class="contact-hours">24 hours a day, 7 days a week</div>
+          </div>
+          <div class="contact-item">
+            <div class="contact-label">Secure Message</div>
+            <div class="contact-num" style="font-size:13px;margin-top:2px;">Available within Online Banking</div>
+          </div>
+        </div>
+
+        <div class="help-card">
+          <h3>&#128205; Branch &amp; ATM Locator</h3>
+          <p>Find your nearest HSBC branch, Premier centre, or fee-free ATM.</p>
+          <div class="help-info-box">
+            <div style="font-size:12px;color:var(--g500);margin-bottom:10px;line-height:1.65;">Use our branch locator to find HSBC services near you. Simply enter your postcode, city, or ZIP code to find branches, Premier Centres, and HSBC-branded ATMs.</div>
+            <div style="font-size:11px;font-weight:700;color:var(--red);letter-spacing:.5px;">hsbc.com/branch-locator</div>
+          </div>
+          <div style="margin-top:14px;">
+            <div class="contact-label">Telephone Banking (24hr)</div>
+            <div class="contact-num">1-800-462-1874</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="help-grid">
+        <div class="help-card">
+          <h3>&#128274; Report Fraud</h3>
+          <p>If you notice suspicious transactions or believe your account has been compromised, contact us immediately.</p>
+          <div class="fraud-box">
+            <div class="flbl">FRAUD HOTLINE — 24 / 7</div>
+            <div class="fnum">1-800-230-2424</div>
+            <div class="fnote">Never share your PIN, password, or one-time passcode with anyone — including HSBC staff.</div>
+          </div>
+          <div style="margin-top:14px;font-size:11.5px;color:var(--g500);line-height:1.65;">If you suspect fraud you can also freeze your card immediately from the Account Services menu above.</div>
+        </div>
+
+        <div class="help-card">
+          <h3>&#128203; Frequently Asked Questions</h3>
+          <div class="faq-item">
+            <div class="faq-q">How do I dispute a transaction?</div>
+            <div class="faq-a">Call the Premier Banking Line or visit any branch within 30 days of the transaction date with your account number and transaction reference.</div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">How do I request a wire transfer?</div>
+            <div class="faq-a">Contact your dedicated Premier Relationship Manager or call the banking line during business hours. International wires require 2 business days.</div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">How do I update my mailing address?</div>
+            <div class="faq-a">Address changes must be completed in person at a branch with valid government-issued photo ID.</div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">How do I request a paper statement?</div>
+            <div class="faq-a">Call the Premier Banking Line or write to the address on your last statement. Paper statements are available for up to 7 years.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="notice-card">
+        <h3>&#9432; Important Notices</h3>
+        <p>
+          HSBC Bank plc is authorised by the Prudential Regulation Authority and regulated by the Financial Conduct Authority and the Prudential Regulation Authority. Registered in England and Wales No. 14259. Registered Office: 8 Canada Square, London E14 5HQ.<br><br>
+          Your eligible deposits are protected up to a total of £85,000 by the Financial Services Compensation Scheme (FSCS). For further information about the compensation provided by the FSCS, please visit <strong>fscs.org.uk</strong>. Deposits held in non-UK currencies may be subject to exchange rate risk.<br><br>
+          &copy; 2025 HSBC Bank plc. All rights reserved. HSBC Bank is a trading name of HSBC Bank plc.
+        </p>
+      </div>
+    </div><!-- /help-view -->
+
+  </div><!-- /main -->
+
+  <div class="site-foot">
+    <div>&copy; 2025 HSBC Bank plc &nbsp;&middot;&nbsp; Authorised by the Prudential Regulation Authority &nbsp;&middot;&nbsp; Member FSCS</div>
+    <div class="badges">
+      <span class="badge">&#128274; 256-bit SSL</span>
+      <span class="badge">&#128737; FSCS Protected</span>
+      <span class="badge">&#10003; Verified Secure</span>
+    </div>
+  </div>
+
+</div><!-- /dashboard-page -->
+
+<!-- ── WITHDRAW MODAL ── -->
+<div class="modal-overlay" id="modal-wdraw">
+  <div class="modal-box">
+    <h3>Withdrawal Request</h3>
+    <p>A withdrawal request has been initiated for account ending in 7842.</p>
+    <div class="mwarn">
+      <h4>&#9888;&#65039; Action Required — Withdrawal Blocked</h4>
+      <p>Your withdrawal cannot be processed at this time. Our records indicate that there are <strong>outstanding tax obligations</strong> associated with this account that must be resolved before any funds can be released or transferred.</p>
+      <p style="margin-top:9px;">Per HSBC Bank Financial Policy &sect;12.4, all accounts with unresolved tax balances are subject to a withdrawal freeze until the full tax amount owed is cleared with the relevant authority.</p>
+      <div class="fee-line">&#9888;&#65039; Attempted Withdrawal Fee: <strong>&#8364;35.00</strong> has been applied to your account for initiating this request while a tax hold is active.</div>
+    </div>
+    <div class="m-actions">
+      <button class="btn-confirm" onclick="closeModal('modal-wdraw')">I Understand</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════
+   STATE  —  read-only to all user-facing interactions
+   Balance & transactions cannot be edited from the UI
+══════════════════════════ */
+const S = {
+  uid:  'jasmine_hubi',
+  pw:   'Flash2024!',
+  bal:  6502284.30,
+  type: 'checking',
+  txns: [
+    { id:1,  date:'Mar 08, 2025', desc:'Direct Deposit \u2014 Employer',        ref:'PAYROLL REF#28847',  cat:'dep', amt:  4200.00 },
+    { id:2,  date:'Mar 06, 2025', desc:'Whole Foods Market',                    ref:'PURCHASE #9921-DC',  cat:'pur', amt:  -187.43 },
+    { id:3,  date:'Mar 05, 2025', desc:'Online Transfer \u2014 Savings',        ref:'INTERNAL TRF-44102', cat:'trf', amt: -1000.00 },
+    { id:4,  date:'Mar 03, 2025', desc:'Amazon.com',                            ref:'ONLINE PURCHASE',    cat:'pur', amt:   -64.99 },
+    { id:5,  date:'Mar 01, 2025', desc:'HSBC Premier Reward Credit',            ref:'REWARDS CREDIT',     cat:'crd', amt:   120.00 },
+    { id:6,  date:'Feb 28, 2025', desc:'Utility Payment \u2014 PEPCO',          ref:'AUTOPAY REF#77230',  cat:'pay', amt:  -218.55 },
+    { id:7,  date:'Feb 26, 2025', desc:'Starbucks',                             ref:'PURCHASE #1104-DC',  cat:'pur', amt:   -12.75 },
+    { id:8,  date:'Feb 24, 2025', desc:'Direct Deposit \u2014 Employer',        ref:'PAYROLL REF#28612',  cat:'dep', amt:  4200.00 },
+    { id:9,  date:'Feb 22, 2025', desc:'Rent Payment \u2014 Property Mgmt',     ref:'ACH PAYMENT',        cat:'pay', amt: -2150.00 },
+    { id:10, date:'Feb 20, 2025', desc:'Interest Credit',                       ref:'MONTHLY INTEREST',   cat:'crd', amt:     0.48 },
+  ]
+};
+
+/* ── Lookups ── */
+const TAG_CLS  = { dep:'tag-dep', pur:'tag-pur', pay:'tag-pay', trf:'tag-trf', crd:'tag-crd' };
+const TAG_LBL  = { dep:'Deposit', pur:'Purchase', pay:'Payment', trf:'Transfer', crd:'Credit' };
+const MO_FULL  = { 1:'January',2:'February',3:'March',4:'April',5:'May',6:'June',
+                   7:'July',8:'August',9:'September',10:'October',11:'November',12:'December' };
+const MO_SHORT = { 1:'Jan',2:'Feb',3:'Mar',4:'Apr',5:'May',6:'Jun',
+                   7:'Jul',8:'Aug',9:'Sep',10:'Oct',11:'Nov',12:'Dec' };
+
+/* ── Format helpers ── */
+function eur(n) {
+  return '\u20AC' + Math.abs(n).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function eurSigned(n) {
+  return (n >= 0 ? '+' : '\u2212') + eur(n);
+}
+
+/* ─────────────────────────────
+   LOGIN / LOGOUT
+───────────────────────────── */
+function doLogin() {
+  const u = el('inp-uid').value.trim();
+  const p = el('inp-pw').value;
+  if (u === S.uid && p === S.pw) {
+    el('login-err').style.display = 'none';
+    el('login-page').style.display = 'none';
+    const d = el('dashboard-page');
+    d.style.display = 'flex';
+    renderAll();
+    nav('account', el('lnk-account'));
+  } else {
+    el('login-err').style.display = 'block';
+    el('inp-pw').value = '';
+    el('inp-pw').focus();
+  }
+}
+el('inp-pw').addEventListener('keydown',  e => { if(e.key==='Enter') doLogin(); });
+el('inp-uid').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+
+function doSignout() {
+  el('dashboard-page').style.display = 'none';
+  el('login-page').style.display = 'flex';
+  el('inp-uid').value = '';
+  el('inp-pw').value = '';
+  el('login-err').style.display = 'none';
+  // reset statement output so it doesn't show stale data next login
+  el('stmt-output').style.display = 'none';
+  // reset nav highlight
+  nav('account', el('lnk-account'));
+}
+
+/* ─────────────────────────────
+   NAVIGATION
+───────────────────────────── */
+const VIEWS = ['account','statements','settings','help'];
+
+function nav(viewId, linkEl) {
+  // Hide all views
+  VIEWS.forEach(v => {
+    const el2 = el(v+'-view');
+    if (el2) { el2.classList.remove('active'); }
+  });
+  // Show target
+  const target = el(viewId+'-view');
+  if (target) {
+    target.classList.add('active');
+    target.scrollTop = 0;
+  }
+  // Update nav highlight
+  document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+  if (linkEl) linkEl.classList.add('active');
+  // Side effects
+  if (viewId === 'settings') el('cur-uid').value = S.uid;
+  window.scrollTo({ top:0, behavior:'smooth' });
+  return false;
+}
+
+/* ─────────────────────────────
+   RENDER
+───────────────────────────── */
+function renderBalance() {
+  const parts = S.bal.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}).split(',');
+  el('bal-display').innerHTML = '\u20AC' + parts[0] + '<span class="cents">,' + parts[1] + '</span>';
+}
+
+function renderTxns() {
+  el('txn-body').innerHTML = S.txns.map(t => `
+    <div class="txn-row">
+      <div class="txn-date">${t.date}</div>
+      <div>
+        <div class="txn-desc">${t.desc}</div>
+        <div class="txn-ref">${t.ref}</div>
+      </div>
+      <div><span class="tag ${TAG_CLS[t.cat]}">${TAG_LBL[t.cat]}</span></div>
+      <div class="txn-amt ${t.amt>=0?'pos':'neg'}">${eurSigned(t.amt)}</div>
+    </div>`).join('');
+}
+
+function renderType() {
+  const c = S.type === 'checking';
+  el('hero-badge').textContent = c ? 'Checking Account' : 'Savings Account';
+  el('disp-type').textContent  = c ? 'Checking' : 'Savings';
+  el('opt-checking').classList.toggle('selected', c);
+  el('opt-savings').classList.toggle('selected', !c);
+}
+
+function renderAll() {
+  renderBalance();
+  renderTxns();
+  renderType();
+}
+
+/* ─────────────────────────────
+   MODALS
+───────────────────────────── */
+function openModal(id)  { el(id).classList.add('open'); }
+function closeModal(id) { el(id).classList.remove('open'); }
+// Close on backdrop click
+document.querySelectorAll('.modal-overlay').forEach(o =>
+  o.addEventListener('click', e => { if(e.target === o) o.classList.remove('open'); })
+);
+// Close on Escape key
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.open').forEach(o => o.classList.remove('open'));
+  }
+});
+
+/* ─────────────────────────────
+   SETTINGS
+───────────────────────────── */
+function changeUID() {
+  const newU = el('new-uid').value.trim();
+  const pw   = el('uid-pw').value;
+  if (!newU)         { showErr('Please enter a new User ID.'); return; }
+  if (newU === S.uid){ showErr('New User ID must be different from your current one.'); return; }
+  if (pw !== S.pw)   { showErr('Incorrect password. No changes were made.'); return; }
+  S.uid = newU;
+  el('cur-uid').value = newU;
+  el('new-uid').value = '';
+  el('uid-pw').value  = '';
+  showOK('ok-uid');
+}
+
+function changePW() {
+  const o = el('old-pw').value;
+  const n = el('new-pw').value;
+  const c = el('conf-pw').value;
+  if (o !== S.pw)  { showErr('Your current password is incorrect.'); return; }
+  if (!n)          { showErr('Please enter a new password.'); return; }
+  if (n.length < 8){ showErr('New password must be at least 8 characters.'); return; }
+  if (n !== c)     { showErr('New passwords do not match.'); return; }
+  if (n === o)     { showErr('New password must be different from your current one.'); return; }
+  S.pw = n;
+  ['old-pw','new-pw','conf-pw'].forEach(id => el(id).value = '');
+  showOK('ok-pw');
+}
+
+function pickType(t) {
+  S.type = t;
+  el('opt-checking').classList.toggle('selected', t==='checking');
+  el('opt-savings').classList.toggle('selected',  t==='savings');
+}
+
+function saveType() {
+  const pw = el('type-pw').value;
+  if (pw !== S.pw) { showErr('Incorrect password. Account type not changed.'); return; }
+  el('type-pw').value = '';
+  renderType();
+  showOK('ok-type');
+}
+
+function showOK(id) {
+  const e = el(id);
+  e.style.display = 'block';
+  setTimeout(() => e.style.display = 'none', 4500);
+}
+function showErr(msg) {
+  alert(msg);
+}
+
+/* ─────────────────────────────
+   STATEMENTS
+───────────────────────────── */
+function genStatement() {
+  const val   = el('stmt-period').value;        // e.g. "2-2025"
+  const [mo, yr] = val.split('-').map(Number);
+  const mFull  = MO_FULL[mo];
+  const mShort = MO_SHORT[mo];
+  const days   = new Date(yr, mo, 0).getDate();  // days in month
+
+  // Build period label
+  const periodLbl = `${mFull} 1 \u2013 ${mFull} ${days}, ${yr}`;
+  const genDate   = new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+
+  // Filter transactions that belong to this month + year
+  const rows = S.txns.filter(t => {
+    const p = t.date.split(' ');  // ["Mar","08,","2025"]
+    return p[0] === mShort && Number(p[2]) === yr;
+  });
+
+  // Totals
+  const totIn  = rows.reduce((s,t) => t.amt > 0 ? s + t.amt : s, 0);
+  const totOut = rows.reduce((s,t) => t.amt < 0 ? s + t.amt : s, 0);
+  const net    = totIn + totOut;
+  const close  = S.bal;
+  const open   = close - net;
+
+  // Populate header
+  el('s-period').textContent = periodLbl;
+  el('s-date').textContent   = genDate;
+  el('s-open').textContent   = eur(open);
+  el('s-close').textContent  = eur(close);
+  el('s-in').textContent     = eur(totIn);
+  el('s-out').textContent    = eur(Math.abs(totOut));
+  el('s-count').textContent  = rows.length;
+  el('s-net').textContent    = eurSigned(net);
+
+  // Populate rows
+  el('s-rows').innerHTML = rows.length === 0
+    ? `<tr><td colspan="5" class="stmt-empty">No transactions recorded for this statement period.</td></tr>`
+    : rows.map(t => `
+      <tr>
+        <td style="white-space:nowrap">${t.date}</td>
+        <td>${t.desc}</td>
+        <td style="font-family:'Courier New',monospace;font-size:11px;color:var(--g500)">${t.ref}</td>
+        <td><span class="tag ${TAG_CLS[t.cat]}" style="font-size:9.5px">${TAG_LBL[t.cat]}</span></td>
+        <td class="${t.amt>=0?'pos':'neg'} txn-amt">${eurSigned(t.amt)}</td>
+      </tr>`).join('');
+
+  // Show output
+  const out = el('stmt-output');
+  out.style.display = 'block';
+  // Smooth scroll to it
+  setTimeout(() => out.scrollIntoView({ behavior:'smooth', block:'start' }), 60);
+}
+
+/* ─────────────────────────────
+   UTILITY
+───────────────────────────── */
+function el(id) { return document.getElementById(id); }
+
+/* ─────────────────────────────
+   INIT
+───────────────────────────── */
+renderAll();
+</script>
+</body>
+</html>
